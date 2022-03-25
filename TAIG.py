@@ -9,7 +9,7 @@ import csv
 import PIL.Image as Image
 from torch.backends import cudnn
 import numpy as np
-
+import pretrainedmodels
 parser = argparse.ArgumentParser()
 parser.add_argument('--epsilon', type=float, default=8)
 parser.add_argument('--niters', type=int, default=20)
@@ -17,9 +17,8 @@ parser.add_argument('--batch_size', type=int, default=50)
 parser.add_argument('--save_dir', type=str, default = 'test/')
 parser.add_argument('--target_attack', default=False, action='store_true')
 parser.add_argument('--s_num', type=str, default='20')
-parser.add_argument('--s_id',type= int ,default=0)
-parser.add_argument('--e_id', type=int, default=1)
 parser.add_argument('--r_flag', type=bool, default=True)
+parser.add_argument('--model_name', type=str, default='senet')
 args = parser.parse_args()
 
 # Selected imagenet. The .csv file format:
@@ -87,6 +86,7 @@ if __name__ == '__main__':
     target_attack = args.target_attack
     r_flag = args.r_flag
     s_num = int(args.s_num)
+    model_name = args.model_name
 
     if torch.cuda.is_available():
         device = torch.device('cuda')
@@ -105,18 +105,36 @@ if __name__ == '__main__':
                                )
     ori_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers = 8, pin_memory = False)
 
-    model = torchvision.models.resnet50(pretrained=True)
-    model.eval()
 
-    mean = (0.485, 0.456, 0.406)
-    std = (0.229, 0.224, 0.225)
+    if model_name == 'inception':
+        model = torchvision.models.inception_v3(pretrained=True)
+    elif model_name == 'senet':
+        model =  pretrainedmodels.__dict__['senet154'](num_classes=1000, pretrained='imagenet')
+    elif model_name == 'resnet':
+        model = torchvision.models.resnet50(pretrained=True)
+    elif model_name == 'densenet':
+        model = torchvision.models.densenet121(pretrained=True)
+    else:
+        print('No implemation')
+    if model_name in ['resnet', 'densenet', 'senet']:
+        mean = (0.485, 0.456, 0.406)
+        std = (0.229, 0.224, 0.225)
+        input_size = [3, 224, 224]
+    else:
+        input_size = [3, 299, 299]
+        mean = (0.5, 0.5, 0.5)
+        std = (0.5, 0.5, 0.5)
     norm = T.Normalize(tuple(mean), tuple(std))
-
+    resize = T.Resize(tuple((input_size[1:])))
     model = nn.Sequential(
-            norm,
-            model
-        )
+        resize,
+        norm,
+        model
+    )
+
+    model.eval()
     model.to(device)
+
 
     if target_attack:
         label_switch = torch.tensor(list(range(500,1000))+list(range(0,500))).long()
