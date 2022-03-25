@@ -131,11 +131,8 @@ if __name__ == '__main__':
         norm,
         model
     )
-
     model.eval()
     model.to(device)
-
-
     if target_attack:
         label_switch = torch.tensor(list(range(500,1000))+list(range(0,500))).long()
     label_ls = []
@@ -147,17 +144,13 @@ if __name__ == '__main__':
         img = ori_img.clone()
         m = 0
         for i in range(niters):
-
             img_x = img
             img_x.requires_grad_(True)
-
-
             steps = s_num
             igs = []
             for im_i in range(list(img_x.shape)[0]):
                 inputs = img_x[im_i].cpu().detach().numpy()
                 label_inputs = label[im_i]
-
                 integrated_grad = compute_ig(inputs, label_inputs, model)
                 igs.append(integrated_grad)
             igs = np.array(igs)
