@@ -56,6 +56,7 @@ def compute_ig(inputs,label_inputs,model):
                      range(0, steps + 1)]
     scaled_inputs = np.asarray(scaled_inputs)
     if r_flag==True:
+        # This is an approximate calculation of TAIG-R
         scaled_inputs = scaled_inputs + np.random.uniform(-epsilon,epsilon,scaled_inputs.shape)
     scaled_inputs = torch.from_numpy(scaled_inputs)
     scaled_inputs = scaled_inputs.to(device, dtype=torch.float)
